@@ -69,5 +69,5 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("RESPONSE DATA", string(ret))
+	fmt.Println(string(ret))
 }
