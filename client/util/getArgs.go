@@ -16,20 +16,20 @@ type Args struct {
 func GetArgs() (Args, error) {
 	args := Args{}
 
-	// send subcommand
-	sendCmd := flag.NewFlagSet("send", flag.ExitOnError)
-	args.Filepath = *sendCmd.String(
-		"file",
-		"",
-		"The path of the file to upload. (Only required when sending)",
-	)
-
 	// receive subcommand
 	receiveCmd := flag.NewFlagSet("receive", flag.ExitOnError)
-	args.JobId = *receiveCmd.String(
+	jobId := receiveCmd.String(
 		"id",
 		"",
 		"The job id of a pending send. (Only required when receiving)",
+	)
+
+	// send subcommand
+	sendCmd := flag.NewFlagSet("send", flag.ExitOnError)
+	filepath := sendCmd.String(
+		"file",
+		"",
+		"The path of the file to upload. (Only required when sending)",
 	)
 
 	// if no command line args provided
@@ -42,8 +42,10 @@ func GetArgs() (Args, error) {
 	switch args.TransferType {
 	case "send":
 		sendCmd.Parse(os.Args[2:])
+		args.Filepath = *filepath
 	case "receive":
-		sendCmd.Parse(os.Args[2:])
+		receiveCmd.Parse(os.Args[2:])
+		args.JobId = *jobId
 	default:
 		return args, fmt.Errorf("Expected 'send' or 'receive'")
 	}
