@@ -38,9 +38,6 @@ func (broker *Broker) ReceiveHandler(w http.ResponseWriter, r *http.Request) {
 
 	// block waiting for messages broadcast on this connection's messageChan
 	for {
-		/* buffer := make([]byte, 1)
-		buffer = <-messageChan */
-
 		byteReader := bytes.NewReader(<-messageChan)
 		io.Copy(w, byteReader)
 

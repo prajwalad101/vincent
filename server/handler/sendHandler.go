@@ -6,6 +6,7 @@ import (
 	"mime"
 	"mime/multipart"
 	"net/http"
+	"time"
 
 	"github.com/prajwalad101/vincent/server/util"
 )
@@ -29,6 +30,21 @@ func (broker *Broker) SendHandler(w http.ResponseWriter, r *http.Request) {
 	jobId := util.GenerateJobId()
 	fmt.Fprintf(w, "Job id: %d ", jobId)
 
+	// flusher, ok := w.(http.Flusher)
+	// if !ok {
+	// 	http.Error(w, "Streaming unsupported!", http.StatusInternalServerError)
+	// 	return
+	// }
+	// flusher.Flush()
+
+	for {
+		// check for any new clients every 100 ms
+		time.Sleep(time.Second * 1)
+		if len(broker.Clients) > 0 {
+			break
+		}
+	}
+
 	// Create a multipart reader with the request body and boundary
 	partReader := multipart.NewReader(r.Body, params["boundary"])
 
@@ -39,6 +55,7 @@ func (broker *Broker) SendHandler(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 		if err != nil {
+			fmt.Println(err.Error())
 			http.Error(w, "Unable to read multipart", http.StatusInternalServerError)
 			return
 		}
@@ -46,7 +63,7 @@ func (broker *Broker) SendHandler(w http.ResponseWriter, r *http.Request) {
 		// copy the uploaded file to the new file on the server
 		for {
 			// send data to notifier channel every 2 seconds
-			buffer := make([]byte, 10000)
+			buffer := make([]byte, 1)
 			_, err = part.Read(buffer)
 			if err != nil {
 				break

@@ -29,7 +29,7 @@ func DownloadFile(url, downloadPath string) (err error) {
 	}
 
 	// Create the file
-	out, err := os.Create(fmt.Sprintf("%s/%s", downloadPath, filename))
+	out, err := os.Create(fmt.Sprintf("%s%s", downloadPath, filename))
 	if err != nil {
 		return err
 	}

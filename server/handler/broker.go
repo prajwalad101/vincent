@@ -14,7 +14,7 @@ type Broker struct {
 func NewBroker() (broker *Broker) {
 	// Instantiate the broker
 	broker = &Broker{
-		Notifier:       make(chan []byte, 10000),
+		Notifier:       make(chan []byte, 1),
 		NewClients:     make(chan chan []byte),
 		ClosingClients: make(chan chan []byte),
 		Clients:        make(map[chan []byte]bool),
