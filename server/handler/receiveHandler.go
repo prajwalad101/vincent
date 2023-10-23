@@ -16,14 +16,17 @@ func (broker *Broker) ReceiveHandler(w http.ResponseWriter, r *http.Request) {
 
 	// register a new channel to the broker
 	messageChan := make(chan []byte)
+	jobId := "testjob123"
+
+	client := Client{channel: messageChan, id: jobId}
 
 	// signal to the broker that we have a new connection
-	broker.NewClients <- messageChan
+	broker.NewClients <- client
 
 	// Remove this client from the map of connected clients
 	// when this handler exits
 	defer func() {
-		broker.ClosingClients <- messageChan
+		broker.ClosingClients <- client
 	}()
 
 	// Listen to connection close and un-register messageChan
@@ -31,7 +34,7 @@ func (broker *Broker) ReceiveHandler(w http.ResponseWriter, r *http.Request) {
 
 	go func() {
 		<-notify
-		broker.ClosingClients <- messageChan
+		broker.ClosingClients <- client
 	}()
 
 	w.Header().Set("Content-Disposition", "attachment; filename=testfilename.txt")

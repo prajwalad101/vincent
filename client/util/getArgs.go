@@ -7,10 +7,11 @@ import (
 )
 
 type Args struct {
-	TransferType string
-	Filepath     string
-	JobId        string
-	DownloadPath string
+	Command         string
+	Filepath        string
+	JobId           string
+	DownloadPath    string
+	SaveOnClipboard bool
 }
 
 // Parse command line subcommands and its flags
@@ -38,14 +39,22 @@ func GetArgs() (Args, error) {
 		"The path of the file to upload.",
 	)
 
+	// create subcommand
+	createCmd := flag.NewFlagSet("create", flag.ExitOnError)
+	saveOnClipboard := createCmd.Bool(
+		"c",
+		true,
+		"Save the job id on clipboard",
+	)
+
 	// if no command line args provided
 	if len(os.Args) < 2 {
 		return args, fmt.Errorf("Expected 'send' or 'receive'")
 	}
 
-	args.TransferType = os.Args[1]
+	args.Command = os.Args[1]
 
-	switch args.TransferType {
+	switch args.Command {
 	case "send":
 		sendCmd.Parse(os.Args[2:])
 		args.Filepath = *filepath
@@ -53,8 +62,9 @@ func GetArgs() (Args, error) {
 		receiveCmd.Parse(os.Args[2:])
 		args.JobId = *jobId
 		args.DownloadPath = *downloadPath
-	default:
-		return args, fmt.Errorf("Expected 'send' or 'receive'")
+	case "create":
+		receiveCmd.Parse(os.Args[2:])
+		args.SaveOnClipboard = *saveOnClipboard
 	}
 
 	return args, nil

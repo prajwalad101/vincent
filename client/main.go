@@ -15,14 +15,17 @@ func main() {
 		return
 	}
 
-	if args.TransferType == "send" {
+	switch args.Command {
+	case "send":
 		err := send(args.Filepath)
 		if err != nil {
 			panic(err)
 		}
-	} else if args.TransferType == "receive" {
+	case "receive":
 		receive(args.JobId, args.DownloadPath)
-	} else {
+	case "create":
+		createJob(args.SaveOnClipboard)
+	default:
 		fmt.Println("No parameters provided. Please specify send or receive")
 		return
 	}

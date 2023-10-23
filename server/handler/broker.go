@@ -4,20 +4,30 @@ import (
 	"log"
 )
 
+type Client struct {
+	channel chan []byte
+	id      string
+}
+
+type Event struct {
+	data  []byte
+	jobId string
+}
+
 type Broker struct {
-	Notifier       chan []byte          // Events are pushed to this channel by the main events-gathering routing
-	NewClients     chan chan []byte     // new client connections
-	ClosingClients chan chan []byte     // closed client connections
-	Clients        map[chan []byte]bool // holds currently open connections
+	EventNotifier  chan Event        // Events are pushed to this channel by the main events-gathering routing
+	NewClients     chan Client       // new client connections
+	ClosingClients chan Client       // closed client connections
+	Clients        map[Client]string // holds currently open connections
 }
 
 func NewBroker() (broker *Broker) {
 	// Instantiate the broker
 	broker = &Broker{
-		Notifier:       make(chan []byte, 1),
-		NewClients:     make(chan chan []byte),
-		ClosingClients: make(chan chan []byte),
-		Clients:        make(map[chan []byte]bool),
+		EventNotifier:  make(chan Event, 1),
+		NewClients:     make(chan Client),
+		ClosingClients: make(chan Client),
+		Clients:        make(map[Client]string),
 	}
 
 	// Set it running - listening and broadcasting events
@@ -31,7 +41,7 @@ func (broker *Broker) listen() {
 		case s := <-broker.NewClients:
 			// A client has connected
 			// Register their message channel
-			broker.Clients[s] = true
+			broker.Clients[s] = "testjobid"
 			log.Printf("Client added. %d registered clients", len(broker.Clients))
 
 		case s := <-broker.ClosingClients:
@@ -40,11 +50,12 @@ func (broker *Broker) listen() {
 			delete(broker.Clients, s)
 			log.Printf("Removed client. %d registered clients", len(broker.Clients))
 
-		case event := <-broker.Notifier:
-			// We got a new event from the outside
-			// Send event to all connected clients
-			for clientMessageChan := range broker.Clients {
-				clientMessageChan <- event
+		case event := <-broker.EventNotifier:
+			// Send event to all connected clients that match the job id
+			for client := range broker.Clients {
+				if client.id == event.jobId {
+					client.channel <- event.data
+				}
 			}
 		}
 	}

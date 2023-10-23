@@ -16,6 +16,7 @@ func main() {
 
 	mux.HandleFunc("/send", broker.SendHandler)
 	mux.HandleFunc("/receive", broker.ReceiveHandler)
+	mux.HandleFunc("/job", broker.JobHandler)
 
 	log.Println("The server is listening on port 3000")
 	err := http.ListenAndServe(":3000", mux)

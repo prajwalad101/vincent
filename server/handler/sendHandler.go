@@ -7,8 +7,6 @@ import (
 	"mime/multipart"
 	"net/http"
 	"time"
-
-	"github.com/prajwalad101/vincent/server/util"
 )
 
 func (broker *Broker) SendHandler(w http.ResponseWriter, r *http.Request) {
@@ -25,17 +23,6 @@ func (broker *Broker) SendHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Malformed multi-part boundary", http.StatusBadRequest)
 		return
 	}
-
-	// store a unique jobId and send it to the client
-	jobId := util.GenerateJobId()
-	fmt.Fprintf(w, "Job id: %d ", jobId)
-
-	// flusher, ok := w.(http.Flusher)
-	// if !ok {
-	// 	http.Error(w, "Streaming unsupported!", http.StatusInternalServerError)
-	// 	return
-	// }
-	// flusher.Flush()
 
 	for {
 		// check for any new clients every 100 ms
@@ -68,7 +55,8 @@ func (broker *Broker) SendHandler(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				break
 			}
-			broker.Notifier <- buffer
+			event := Event{data: buffer, jobId: "test123"}
+			broker.EventNotifier <- event
 		}
 	}
 	return
