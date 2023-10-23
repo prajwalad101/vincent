@@ -8,7 +8,7 @@ import (
 	"os"
 )
 
-func DownloadFile(url string) (err error) {
+func DownloadFile(url, downloadPath string) (err error) {
 	resp, err := http.Get(url)
 	if err != nil {
 		return err
@@ -29,7 +29,7 @@ func DownloadFile(url string) (err error) {
 	}
 
 	// Create the file
-	out, err := os.Create(filename)
+	out, err := os.Create(fmt.Sprintf("%s/%s", downloadPath, filename))
 	if err != nil {
 		return err
 	}

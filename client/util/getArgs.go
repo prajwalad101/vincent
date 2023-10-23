@@ -10,6 +10,7 @@ type Args struct {
 	TransferType string
 	Filepath     string
 	JobId        string
+	DownloadPath string
 }
 
 // Parse command line subcommands and its flags
@@ -21,7 +22,12 @@ func GetArgs() (Args, error) {
 	jobId := receiveCmd.String(
 		"id",
 		"",
-		"The job id of a pending send. (Only required when receiving)",
+		"The job id of a pending send.",
+	)
+	downloadPath := receiveCmd.String(
+		"path",
+		"",
+		"The path to download the received file",
 	)
 
 	// send subcommand
@@ -29,7 +35,7 @@ func GetArgs() (Args, error) {
 	filepath := sendCmd.String(
 		"file",
 		"",
-		"The path of the file to upload. (Only required when sending)",
+		"The path of the file to upload.",
 	)
 
 	// if no command line args provided
@@ -46,6 +52,7 @@ func GetArgs() (Args, error) {
 	case "receive":
 		receiveCmd.Parse(os.Args[2:])
 		args.JobId = *jobId
+		args.DownloadPath = *downloadPath
 	default:
 		return args, fmt.Errorf("Expected 'send' or 'receive'")
 	}

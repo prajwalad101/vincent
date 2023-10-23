@@ -10,10 +10,10 @@ test-client:
 
 # SERVER
 build-server:
-	@cd server && go build -o ./bin/vincent
+	@cd server && go build -o ./bin/vincent-server
 
 run-server: build-server
-	@./server/bin/gobank
+	@./server/bin/vincent-server
 
 test-server:
 	@go test -v ./client/...

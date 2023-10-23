@@ -16,9 +16,12 @@ func main() {
 	}
 
 	if args.TransferType == "send" {
-		send(args.Filepath)
+		err := send(args.Filepath)
+		if err != nil {
+			panic(err)
+		}
 	} else if args.TransferType == "receive" {
-		receive()
+		receive(args.JobId, args.DownloadPath)
 	} else {
 		fmt.Println("No parameters provided. Please specify send or receive")
 		return
