@@ -14,9 +14,14 @@ func (broker *Broker) ReceiveHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	jobId := r.URL.Query().Get("jobId")
+	if jobId == "" {
+		http.Error(w, "Job Id is required", http.StatusBadRequest)
+		return
+	}
+
 	// register a new channel to the broker
 	messageChan := make(chan []byte)
-	jobId := "testjob123"
 
 	client := Client{channel: messageChan, id: jobId}
 

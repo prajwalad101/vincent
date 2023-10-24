@@ -13,11 +13,19 @@ import (
 	"github.com/cheggaaa/pb/v3"
 )
 
-func send(filepath string) error {
+func send(jobId, filepath string) error {
 	var bar *pb.ProgressBar
 	var file *os.File
 	var fileInfo os.FileInfo
 	var err error
+
+	if jobId == "" {
+		return fmt.Errorf("Please provide a job id")
+	}
+
+	if filepath == "" {
+		return fmt.Errorf("Please provide a filepath")
+	}
 
 	if file, err = os.Open(filepath); err != nil {
 		return err
@@ -57,7 +65,11 @@ func send(filepath string) error {
 		}
 	}()
 
-	resp, err := http.Post(fmt.Sprintf("%s/send", API_URL), mpw.FormDataContentType(), r)
+	resp, err := http.Post(
+		fmt.Sprintf("%s/send?jobId=%s", API_URL, jobId),
+		mpw.FormDataContentType(),
+		r,
+	)
 	if err != nil {
 		return err
 	}

@@ -10,6 +10,13 @@ import (
 )
 
 func (broker *Broker) SendHandler(w http.ResponseWriter, r *http.Request) {
+	// get job id
+	jobId := r.URL.Query().Get("jobId")
+	if jobId == "" {
+		http.Error(w, "Job Id is required", http.StatusBadRequest)
+		return
+	}
+
 	contentType := r.Header.Get("Content-Type")
 
 	_, params, err := mime.ParseMediaType(contentType)

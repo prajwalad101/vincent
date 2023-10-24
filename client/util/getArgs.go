@@ -20,10 +20,10 @@ func GetArgs() (Args, error) {
 
 	// receive subcommand
 	receiveCmd := flag.NewFlagSet("receive", flag.ExitOnError)
-	jobId := receiveCmd.String(
+	receiveJobId := receiveCmd.String(
 		"id",
 		"",
-		"The job id of a pending send.",
+		"The id of a pending send transfer",
 	)
 	downloadPath := receiveCmd.String(
 		"path",
@@ -38,13 +38,18 @@ func GetArgs() (Args, error) {
 		"",
 		"The path of the file to upload.",
 	)
+	sendJobId := sendCmd.String(
+		"id",
+		"",
+		"The id of a send transfer",
+	)
 
 	// create subcommand
 	createCmd := flag.NewFlagSet("create", flag.ExitOnError)
 	saveOnClipboard := createCmd.Bool(
 		"c",
 		true,
-		"Save the job id on clipboard",
+		"Save the id on clipboard",
 	)
 
 	// if no command line args provided
@@ -57,10 +62,11 @@ func GetArgs() (Args, error) {
 	switch args.Command {
 	case "send":
 		sendCmd.Parse(os.Args[2:])
+		args.JobId = *sendJobId
 		args.Filepath = *filepath
 	case "receive":
 		receiveCmd.Parse(os.Args[2:])
-		args.JobId = *jobId
+		args.JobId = *receiveJobId
 		args.DownloadPath = *downloadPath
 	case "create":
 		receiveCmd.Parse(os.Args[2:])

@@ -17,16 +17,21 @@ func main() {
 
 	switch args.Command {
 	case "send":
-		err := send(args.Filepath)
-		if err != nil {
-			panic(err)
-		}
+		err = send(args.JobId, args.Filepath)
 	case "receive":
-		receive(args.JobId, args.DownloadPath)
+		err = receive(args.JobId, args.DownloadPath)
 	case "create":
-		createJob(args.SaveOnClipboard)
+		err = createJob(args.SaveOnClipboard)
 	default:
 		fmt.Println("No parameters provided. Please specify send or receive")
 		return
+	}
+
+	handleError(err)
+}
+
+func handleError(err error) {
+	if err != nil {
+		panic(err)
 	}
 }
