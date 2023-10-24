@@ -47,27 +47,24 @@ func (broker *Broker) listen() {
 			clients := broker.Clients[client.id]
 			if clients != nil {
 				// append the channel
-				clients = append(broker.Clients[client.id], client.channel)
-				log.Printf(
-					"Adding a new client for job %s. %d registered clients.",
-					client.id,
-					len(clients),
-				)
+				clients = append(clients, client.channel)
 			} else {
 				// create a new client entry on that id
-				log.Printf("First receiver added for job %s", client.id)
 				clients = [](chan []byte){client.channel}
 			}
+
+			broker.Clients[client.id] = clients
+
+			log.Printf(
+				"Adding a new client for job '%s'. %d registered clients.",
+				client.id,
+				len(broker.Clients[client.id]),
+			)
 
 		case closingClient := <-broker.ClosingClient:
 			// check if any clients exist on that id
 			clients := broker.Clients[closingClient.id]
 			if clients != nil {
-				log.Printf(
-					"Removing client for job %s. %d registered clients.",
-					closingClient.id,
-					len(clients),
-				)
 				// find the index of the closing client
 				clientIndex := util.SliceIndex(len(clients), func(i int) bool {
 					return clients[i] == closingClient.channel
@@ -75,8 +72,16 @@ func (broker *Broker) listen() {
 				// remove the client from list of registered clients
 				clients[clientIndex] = clients[len(clients)-1]
 				clients = clients[:len(clients)-1]
+
+				broker.Clients[closingClient.id] = clients
+
+				log.Printf(
+					"Removing client for job '%s'. %d registered clients.",
+					closingClient.id,
+					len(broker.Clients[closingClient.id]),
+				)
 			} else {
-				log.Printf("Client with job id %s does not exist", closingClient.id)
+				log.Printf("Client with job id '%s' does not exist", closingClient.id)
 			}
 
 		case event := <-broker.EventNotifier:
