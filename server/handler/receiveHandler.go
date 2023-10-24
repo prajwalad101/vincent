@@ -46,7 +46,6 @@ func (broker *Broker) ReceiveHandler(w http.ResponseWriter, r *http.Request) {
 			byteReader := bytes.NewReader(message)
 			io.Copy(w, byteReader)
 			flusher.Flush()
-		default:
 		}
 	}
 }
