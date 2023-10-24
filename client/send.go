@@ -66,7 +66,8 @@ func send(jobId, filepath string) error {
 	}()
 
 	resp, err := http.Post(
-		fmt.Sprintf("%s/send?jobId=%s", API_URL, jobId),
+		// TODO: get the receivers value from the client
+		fmt.Sprintf("%s/send?jobId=%s&receivers=%d", API_URL, jobId, 1),
 		mpw.FormDataContentType(),
 		r,
 	)

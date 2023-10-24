@@ -6,6 +6,7 @@ import (
 	"mime"
 	"mime/multipart"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -13,7 +14,19 @@ func (broker *Broker) SendHandler(w http.ResponseWriter, r *http.Request) {
 	// get job id
 	jobId := r.URL.Query().Get("jobId")
 	if jobId == "" {
-		http.Error(w, "Job Id is required", http.StatusBadRequest)
+		http.Error(w, "'jobId' is required", http.StatusBadRequest)
+		return
+	}
+
+	receivers := r.URL.Query().Get("receivers")
+	if receivers == "" {
+		http.Error(w, "'receivers' is required", http.StatusBadRequest)
+		return
+	}
+
+	numReceivers, err := strconv.Atoi(receivers)
+	if err != nil {
+		http.Error(w, "Invalid 'receivers' value", http.StatusBadRequest)
 		return
 	}
 
@@ -35,7 +48,11 @@ func (broker *Broker) SendHandler(w http.ResponseWriter, r *http.Request) {
 		// check for any new clients every 100 ms
 		time.Sleep(time.Second * 1)
 
-		if len(broker.Clients) > 0 {
+		// check if there are any registered clients
+		clients := broker.Clients[jobId]
+
+		// check if the number if receivers is ready
+		if len(clients) >= numReceivers {
 			break
 		}
 	}
@@ -63,7 +80,7 @@ func (broker *Broker) SendHandler(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				break
 			}
-			event := Event{data: buffer, jobId: "test123"}
+			event := Event{data: buffer, jobId: jobId}
 			broker.EventNotifier <- event
 		}
 	}

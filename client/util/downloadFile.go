@@ -9,6 +9,8 @@ import (
 )
 
 func DownloadFile(url, downloadPath string) (err error) {
+	fmt.Println("Waiting for sender ...")
+
 	resp, err := http.Get(url)
 	if err != nil {
 		return err
