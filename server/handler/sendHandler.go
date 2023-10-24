@@ -44,6 +44,20 @@ func (broker *Broker) SendHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Listen to connection close and un-register messageChan
+	notify := w.(http.CloseNotifier).CloseNotify()
+
+	go func() {
+		<-notify
+		fmt.Println("Connection closed.")
+		broker.ClosingClient <- jobId
+	}()
+
+	// close all receivers when sender closes
+	defer func() {
+		broker.ClosingClient <- jobId
+	}()
+
 	for {
 		// check for any new clients every 100 ms
 		time.Sleep(time.Second * 1)
@@ -76,7 +90,7 @@ func (broker *Broker) SendHandler(w http.ResponseWriter, r *http.Request) {
 		for {
 			// send data to notifier channel every 2 seconds
 			buffer := make([]byte, 1)
-			_, err = part.Read(buffer)
+			_, err := part.Read(buffer)
 			if err != nil {
 				break
 			}
@@ -84,5 +98,7 @@ func (broker *Broker) SendHandler(w http.ResponseWriter, r *http.Request) {
 			broker.EventNotifier <- event
 		}
 	}
+
+	fmt.Fprint(w, "Transfer complete.")
 	return
 }

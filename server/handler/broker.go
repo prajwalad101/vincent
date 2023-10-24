@@ -2,16 +2,19 @@ package handler
 
 import (
 	"log"
-
-	"github.com/prajwalad101/vincent/server/util"
 )
 
 type Client struct {
 	id      string
-	channel chan []byte
+	channel ClientChan
 }
 
-type Clients = map[string][](chan []byte)
+type ClientChan struct {
+	messageChan chan []byte
+	closeChan   chan bool
+}
+
+type Clients = map[string][]ClientChan
 
 type Event struct {
 	data  []byte
@@ -21,7 +24,7 @@ type Event struct {
 type Broker struct {
 	EventNotifier chan Event  // Events are pushed to this channel by the main events-gathering routing
 	NewClient     chan Client // new client connections
-	ClosingClient chan Client // closed client connections
+	ClosingClient chan string // closed client connections
 	Clients       Clients     // holds currently open connections
 }
 
@@ -30,7 +33,7 @@ func NewBroker() (broker *Broker) {
 	broker = &Broker{
 		EventNotifier: make(chan Event, 1),
 		NewClient:     make(chan Client),
-		ClosingClient: make(chan Client),
+		ClosingClient: make(chan string),
 		Clients:       make(Clients),
 	}
 
@@ -50,7 +53,7 @@ func (broker *Broker) listen() {
 				clients = append(clients, client.channel)
 			} else {
 				// create a new client entry on that id
-				clients = [](chan []byte){client.channel}
+				clients = [](ClientChan){client.channel}
 			}
 
 			broker.Clients[client.id] = clients
@@ -61,14 +64,32 @@ func (broker *Broker) listen() {
 				len(broker.Clients[client.id]),
 			)
 
-		case closingClient := <-broker.ClosingClient:
+		case id := <-broker.ClosingClient:
+			clients := broker.Clients[id]
+
+			if clients == nil {
+				log.Printf("Client with job id '%s' does not exist", id)
+				return
+			}
+
+			// send a message on close channel
+			for _, client := range clients {
+				client.closeChan <- true
+			}
+			// delete the entry from the clients
+			delete(broker.Clients, id)
+			log.Printf("Removing all clients for job '%s'.", id)
+
 			// check if any clients exist on that id
-			clients := broker.Clients[closingClient.id]
-			if clients != nil {
+			/* if clients != nil {
 				// find the index of the closing client
 				clientIndex := util.SliceIndex(len(clients), func(i int) bool {
 					return clients[i] == closingClient.channel
 				})
+				if clientIndex == -1 {
+					log.Printf("Client with job id '%s' does not exist", closingClient.id)
+					return
+				}
 				// remove the client from list of registered clients
 				clients[clientIndex] = clients[len(clients)-1]
 				clients = clients[:len(clients)-1]
@@ -80,16 +101,17 @@ func (broker *Broker) listen() {
 					closingClient.id,
 					len(broker.Clients[closingClient.id]),
 				)
-			} else {
-				log.Printf("Client with job id '%s' does not exist", closingClient.id)
-			}
+
+			} else { */
+			// log.Printf("Client with job id '%s' does not exist", closingClient.id)
+			// }
 
 		case event := <-broker.EventNotifier:
 			// Send event to all connected clients that match the job id
 			clients := broker.Clients[event.jobId]
 			// send message to all clients
 			for _, client := range clients {
-				client <- event.data
+				client.messageChan <- event.data
 			}
 		}
 	}

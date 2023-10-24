@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net/http"
 )
@@ -20,35 +21,32 @@ func (broker *Broker) ReceiveHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// register a new channel to the broker
 	messageChan := make(chan []byte)
+	closeChan := make(chan bool)
 
-	client := Client{channel: messageChan, id: jobId}
+	client := Client{
+		channel: ClientChan{
+			messageChan: messageChan,
+			closeChan:   closeChan,
+		},
+		id: jobId,
+	}
 
 	// signal to the broker that we have a new connection
 	broker.NewClient <- client
 
-	// Remove this client from the map of connected clients
-	// when this handler exits
-	defer func() {
-		broker.ClosingClient <- client
-	}()
-
-	// Listen to connection close and un-register messageChan
-	notify := w.(http.CloseNotifier).CloseNotify()
-
-	go func() {
-		<-notify
-		broker.ClosingClient <- client
-	}()
-
 	w.Header().Set("Content-Disposition", "attachment; filename=testfilename.txt")
 
-	// block waiting for messages broadcast on this connection's messageChan
 	for {
-		byteReader := bytes.NewReader(<-messageChan)
-		io.Copy(w, byteReader)
-
-		flusher.Flush()
+		select {
+		case <-closeChan:
+			fmt.Fprint(w, "Transfer complete.")
+			return
+		case message := <-messageChan:
+			byteReader := bytes.NewReader(message)
+			io.Copy(w, byteReader)
+			flusher.Flush()
+		default:
+		}
 	}
 }
