@@ -2,12 +2,16 @@ package handler
 
 import (
 	"log"
+
+	"github.com/prajwalad101/vincent/server/util"
 )
 
 type Client struct {
-	channel chan []byte
 	id      string
+	channel chan []byte
 }
+
+type Clients = map[string][](chan []byte)
 
 type Event struct {
 	data  []byte
@@ -15,19 +19,19 @@ type Event struct {
 }
 
 type Broker struct {
-	EventNotifier  chan Event        // Events are pushed to this channel by the main events-gathering routing
-	NewClients     chan Client       // new client connections
-	ClosingClients chan Client       // closed client connections
-	Clients        map[Client]string // holds currently open connections
+	EventNotifier chan Event  // Events are pushed to this channel by the main events-gathering routing
+	NewClient     chan Client // new client connections
+	ClosingClient chan Client // closed client connections
+	Clients       Clients     // holds currently open connections
 }
 
 func NewBroker() (broker *Broker) {
 	// Instantiate the broker
 	broker = &Broker{
-		EventNotifier:  make(chan Event, 1),
-		NewClients:     make(chan Client),
-		ClosingClients: make(chan Client),
-		Clients:        make(map[Client]string),
+		EventNotifier: make(chan Event, 1),
+		NewClient:     make(chan Client),
+		ClosingClient: make(chan Client),
+		Clients:       make(Clients),
 	}
 
 	// Set it running - listening and broadcasting events
@@ -38,24 +42,49 @@ func NewBroker() (broker *Broker) {
 func (broker *Broker) listen() {
 	for {
 		select {
-		case s := <-broker.NewClients:
-			// A client has connected
-			// Register their message channel
-			broker.Clients[s] = "testjobid"
-			log.Printf("Client added. %d registered clients", len(broker.Clients))
+		case client := <-broker.NewClient:
+			// check if there are clients on that id
+			clients := broker.Clients[client.id]
+			if clients != nil {
+				// append the channel
+				clients = append(broker.Clients[client.id], client.channel)
+				log.Printf(
+					"Adding a new client for job %s. %d registered clients.",
+					client.id,
+					len(clients),
+				)
+			} else {
+				// create a new client entry on that id
+				log.Printf("First receiver added for job %s", client.id)
+				clients = [](chan []byte){client.channel}
+			}
 
-		case s := <-broker.ClosingClients:
-			// A client has deattached and we want to
-			// stop sending them messages
-			delete(broker.Clients, s)
-			log.Printf("Removed client. %d registered clients", len(broker.Clients))
+		case closingClient := <-broker.ClosingClient:
+			// check if any clients exist on that id
+			clients := broker.Clients[closingClient.id]
+			if clients != nil {
+				log.Printf(
+					"Removing client for job %s. %d registered clients.",
+					closingClient.id,
+					len(clients),
+				)
+				// find the index of the closing client
+				clientIndex := util.SliceIndex(len(clients), func(i int) bool {
+					return clients[i] == closingClient.channel
+				})
+				// remove the client from list of registered clients
+				clients[clientIndex] = clients[len(clients)-1]
+				clients = clients[:len(clients)-1]
+			} else {
+				log.Printf("Client with job id %s does not exist", closingClient.id)
+			}
 
 		case event := <-broker.EventNotifier:
 			// Send event to all connected clients that match the job id
-			for client := range broker.Clients {
-				if client.id == event.jobId {
-					client.channel <- event.data
-				}
+			clients := broker.Clients[event.jobId]
+			// send message to all clients
+			for _, client := range clients {
+				client <- event.data
 			}
 		}
 	}

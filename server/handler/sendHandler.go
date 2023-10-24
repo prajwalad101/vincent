@@ -34,6 +34,7 @@ func (broker *Broker) SendHandler(w http.ResponseWriter, r *http.Request) {
 	for {
 		// check for any new clients every 100 ms
 		time.Sleep(time.Second * 1)
+
 		if len(broker.Clients) > 0 {
 			break
 		}
