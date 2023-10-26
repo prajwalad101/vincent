@@ -43,5 +43,7 @@ func DownloadFile(url, downloadPath string) (err error) {
 		return err
 	}
 
+	fmt.Println("Transfer complete.")
+
 	return nil
 }

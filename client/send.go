@@ -27,6 +27,21 @@ func send(jobId, filepath string) error {
 		return fmt.Errorf("Please provide a filepath")
 	}
 
+	fmt.Println("Waiting for receivers ...")
+
+	// check if the receivers are ready
+	for {
+		time.Sleep(time.Second * 5)
+		isReady, err := checkReceivers(jobId, 1)
+		if err != nil {
+			return err
+		}
+		if isReady {
+			fmt.Println("Receiver is ready. Initiating the transfer ...")
+			break
+		}
+	}
+
 	if file, err = os.Open(filepath); err != nil {
 		return err
 	}
